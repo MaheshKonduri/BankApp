@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: spring-boot-rest-example
+objects:
+- apiVersion: v1
+  kind: BuildConfig # Defines build process for Docker Images
+  metadata:
+    labels:
+      build: ${APPLICATION_NAME}
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    failedBuildsHistoryLimit: 5 #Number of failed builds to keep
+    nodeSelector: null # Limits which nodes pod will be placed in
+    output:
+      to:
+        kind: ImageStreamTag # Docker Image Tag
+        name: ${APPLICATION_NAME}:${TAG}
+    postCommit: {} # Run commands in temp container running output image after last layer of image created
+    resources: {} # Node resources allocated to this build
+    runPolicy: Serial # Order that builds should run
+    source:
+      binary: {}
+      type: Binary # Build type. Binary builds stream content from local file system to builder
+    strategy: # How the image will be built Options: Source Docker Pipeline or Custom:
+      sourceStrategy: #
+        from:
+          kind: ImageStreamTag
+          name: ${IMAGE_STREAM_TAG_NAME}
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: Source
+    successfulBuildsHistoryLimit: 5 # Number of builds to keep
+  status:
+    lastVersion: 0 # Latest
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}-pipeline
+    namespace: ${NAMESPACE}
+  spec:
+    source: #Build config source location
+      type: Git
+      git:
+        uri: ${SOURCE_REPOSITORY_URL} # Git Lab repo location Ex: git@git.delta.com:openshift/application-examples.git
+        ref: ${SOURCE_REPOSITORY_REF} # Git branch/tag reference
+      sourceSecret:
+        name: git-secret # Private key that matches public key stored in gitlab
+      contextDir: ${CONTEXT_DIR} # he build process will change to this directory
+    triggers: # Build Triggers
+    - type: ConfigChange # Kick-off build whenever the config changes
+    strategy:
+      type: JenkinsPipeline # Uses a JenkinsFile to do a pipeline build
+      jenkinsPipelineStrategy:
+        jenkinsfilePath: ${PIPELINE_SCRIPT} # Path to JenkinsFile
+parameters:
+- description: The name for the application.
+  name: APPLICATION_NAME
+  required: true
+- description: The namespace to deploy into
+  name: NAMESPACE
+  required: true
+- description: Git source URI for application
+  name: SOURCE_REPOSITORY_URL
+  required: true
+- description: Git branch/tag reference
+  name: SOURCE_REPOSITORY_REF
+- description: Path within Git project to build; empty for root project directory.
+  name: CONTEXT_DIR
+  value: 
+- description: Path within Git project pointing to the pipeline run script
+  name: PIPELINE_SCRIPT
+  required: true
+- description: Namespace in which the ImageStreams for Red Hat Middleware images are
+    installed. These ImageStreams are normally installed in the openshift namespace.
+    You should only need to modify this if you've installed the ImageStreams in a
+    different namespace/project.
+  name: IMAGE_STREAM_NAMESPACE
+  required: true
+  value: openshift
+- description: Image stream tag for the image you'd like to use to build the application
+  name: IMAGE_STREAM_TAG_NAME
+  required: true
+  value: delta-openjdk18-openshift:1.6
+- description: Image tag
+  name: TAG
+  required: true
+  value: latest

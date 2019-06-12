@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Application template for Messaging API using a Jenkins Pipeline
+    iconClass: icon-tomcat
+    tags: java,spring
+    version: 1.0.0
+  name: spring-boot-rest-example-deploy-template
+objects:
+- apiVersion: v1
+  kind: ImageStream #Represents a single view of related Docker Images
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+    namespace: ${NAMESPACE}
+- apiVersion: v1
+  kind: DeploymentConfig # Defines the following details a deployment
+  metadata:
+    labels:
+      application: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    replicas: 2 # Default Replica Count for the deployment
+    revisionHistoryLimit: 10 # Number of old Replication controllers to keep
+    selector:
+      app: ${APPLICATION_NAME}
+      deploymentconfig: ${APPLICATION_NAME}
+    strategy: # Default strategy is Rolling
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25% # Max number of pods above the original number of pods
+        maxUnavailable: 25% # Max number of pods that can be unavailable
+        timeoutSeconds: 6000 # Time to wait before giving up on a scaling event
+        updatePeriodSeconds: 1 #Time between individual pod updates
+      type: Rolling #Type of deployment other opionts are Recreate or Custom
+    template:
+      metadata:
+        labels:
+          app: ${APPLICATION_NAME}
+          deploymentconfig: ${APPLICATION_NAME}
+      spec:
+        containers:
+        - env:
+          - name: JAVA_OPTIONS
+            value: -Dspring.profiles.active=default
+          image: "${NAMESPACE}/${APPLICATION_NAME}"
+          imagePullPolicy: Always # When the a new container is created:
+          name: ${APPLICATION_NAME}
+          resources:
+            limits:
+              memory: "${MEMORY_LIMIT}"
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          readinessProbe: # Determines of container is ready to service requests
+            exec: # Executes command inside container
+              command:
+              - /bin/bash
+              - -c
+              - curl -s 'http://localhost:8080${READINESS_PATH}'
+                |grep -iq '${READINESS_RESPONSE}'
+          terminationMessagePath: /dev/termination-log #Container termination message
+          terminationMessagePolicy: File # Type of termination message
+        dnsPolicy: ClusterFirst #DNS policy for containers in pod
+        restartPolicy: Always # For containers in pod. Options: Always, OnFailure, Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30 # Time pod needs to terminate gracefully
+    test: false
+    triggers:
+    - type: ImageChange #Creates new replication controller when new image version available
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APPLICATION_NAME}
+        from:
+          kind: ImageStreamTag #Represents a single view of related Docker Images
+          name: ${APPLICATION_NAME}:latest
+      type: ImageChange
+    - type: ConfigChange # Creates new replication controller when pod template changes
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: 8443-tcp
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: ${APPLICATION_NAME}
+      deploymentconfig: ${APPLICATION_NAME}
+    sessionAffinity: None #Requests will be routed to same server that received initial request
+    type: ClusterIP #IP address of the service
+  status:
+    loadBalancer: {}
+parameters:
+- description: The name for the application.
+  name: APPLICATION_NAME
+  required: true
+- description: The namespace to deploy into
+  name: NAMESPACE
+  required: true
+- description: Name of a service account that can deploy to this project
+  name: SA_NAME
+  required: true
+  value: jenkins
+- description: Namespace of service account that can deploy to this project
+  name: SA_NAMESPACE
+  required: true
+- description: Container memory limit
+  name: MEMORY_LIMIT
+  value: 2Gi
+  required: true
+- description: 'URI to check for app health'
+  name: READINESS_PATH
+  value: '/'
+- description: 'String value expected back from readiness check'
+  name: READINESS_RESPONSE
+  required: true

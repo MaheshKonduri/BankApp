@@ -1,0 +1,15 @@
+openshift_cluster_content:
+- object: jenkins-delta
+  content:
+  - name: "deploy delta jenkins image"
+    template: openshift//delta-jenkins-v3-11
+    params: "{{ inventory_dir }}/../../.openshift/params/delta-jenkins"
+    namespace: enterprise-pipeline-build
+- object: builds
+  content:
+  - name: "deploy build pipeline to dev"
+    template: "{{ inventory_dir }}/../../.openshift/templates/build.yml"
+    params: "{{ inventory_dir }}/../../.openshift/params/build-dvl"
+
+## This example does not include the git secret and the nexus secret.
+## You will need to add those secrets as well to authenticate to GitLab and Nexus

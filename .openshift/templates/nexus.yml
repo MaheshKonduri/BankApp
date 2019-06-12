@@ -1,0 +1,34 @@
+# IMPORTANT: This file has been added to the .gitignore. Please add your username and password
+# to nexus below and "oc process -f nexus.yml | oc apply" to your dvl namespace by hand.
+
+apiVersion: v1
+kind: Template
+labels:
+  template: nexus-upload-token
+metadata:
+  annotations:
+    description: Nexus Credentials
+    tags: secret
+    version: 1.0.0
+  name: nexus-upload-token
+objects:
+- apiVersion: v1
+  stringData:
+    username: ${USERNAME}
+    password: "${PASSWORD}"
+  data:
+  kind: Secret
+  metadata:
+    name: nexus-upload-token
+    labels:
+      credential.sync.jenkins.openshift.io: 'true'
+  type: kubernetes.io/basic-auth
+parameters:
+- description: Nexus Username
+  name: USERNAME
+  required: true
+  value: USERNAME
+- description: Nexus Password
+  name: PASSWORD
+  required: true
+  value: PASSWORD

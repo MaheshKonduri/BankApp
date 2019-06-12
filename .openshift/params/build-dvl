@@ -1,0 +1,5 @@
+APPLICATION_NAME=spring-boot-rest-example
+NAMESPACE=enterprise-pipeline-build
+SOURCE_REPOSITORY_URL=https://git.delta.com/openshift/application-examples.git
+SOURCE_REPOSITORY_REF=master
+PIPELINE_SCRIPT=spring-boot-rest-example/Jenkinsfile

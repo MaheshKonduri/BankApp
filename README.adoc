@@ -1,0 +1,243 @@
+== Example Spring Boot Restful Microservice
+
+https://git.delta.com/openshift/application-examples/tree/master/spring-boot-rest-example[This] is an example Spring Boot application that will deploy to
+OpenShift. The application includes https://git.delta.com/openshift/application-examples/tree/master/spring-boot-rest-example/.openshift/templates[build and deploy configs] and Ansible
+https://git.delta.com/openshift/application-examples/tree/master/spring-boot-rest-example/.applier[applier] configuration.
+
+
+== Quickstart: Automated Deployment
+
+This Quickstart will build and deploy the sample application on the OpenShift
+platform.
+
+**Prerequisites**
+
+You will need the following before you can deploy the sample application to
+OpenShift:
+
+* https://docs.openshift.com/container-platform/3.9/cli_reference/get_started_cli.html[OpenShift CLI]
+* https://paasport.delta.com/docs/#on-boarding[Access OpenShift NameSpace]
+
+
+Starting from your local machine, you will complete the following steps. This
+will run applier on OpenShift and deploy the sample application. You can also
+follow along with this https://web.microsoftstream.com/video/42d2f24c-27be-4130-bbc8-05262b710f02?list=studio[tutorial video].
+
+
+1) Login to https://sbx2con.paasdev.delta.com/console[OpenShift Console] from
+a browser.
+
+2) Click on your username and copy the login command to your clipboard.
+
+image::/openjdk/spring-boot-rest-example/images/openshift_login.png[1000,1000]
+
+3) Paste login command in your terminal and login to OpenShift again from the
+terminal.
+
+----
+oc login ...
+----
+
+4) Start the toolbox container and login to OpenShift from its terminal.
+----
+oc run -i -t tool-box-example --image=quay.io/redhat-cop/tool-box:v1.2 --restart=Never --rm bash
+----
+
+then
+
+----
+oc login ...
+----
+
+5) Copy your application-examples repo to the container.
+----
+git clone https://git.delta.com/openshift/application-examples.git
+----
+
+6) Navigate to the SpringBoot Rest Example project.
+----
+cd application-examples/openjdk/spring-boot-rest-example
+----
+
+7) Deploy the sample app
+----
+./deploy.sh <your-namespace>
+----
+
+Congratulations you have just deployed to OpenShift!
+
+By clicking on your project in the OpenShift console you should see your three
+containers running in pod.
+
+== Deeper Dive
+
+This section is optional. If you have followed the instructions in the Quickstart
+then you have already deployed an application to OpenShift. This section goes
+into the details of OpenShift and Applier.
+
+=== Openshift Components
+
+The `.openshift` folder will contain all the resources for building and
+deploying your application on Openshift. In this example three containers will
+be created. The toolbox container will give an interactive command line to run
+OpenShift commands. The Jenkins container will build your application and deploy
+it via pipeline to the third container.
+
+=== Build Config
+
+A build is defined by a *BuildConfig*. This is a REST object that
+can be used in a HTTP POST request to the OpenShift API to create a new instance of a Jenkins
+server that contains a CI/CD pipeline. The pipeline will be used to build test
+deploy the sample applications.
+
+The build config template is located at
+`.openshift/templates/build.yml`. We want to keep the build config
+template generic and use parameters to compose the BuildConfig at runtime. The
+param
+file that is used to build the application in the sandbox (sbx) environment is
+located at `.openshift/params/build-sbx`.
+
+=== Deploy Config
+
+A deployment is defined by a *DeployConfig*. This is a REST object that can be
+used in a HTTP POST request to deploy an application to openshift. There are 4 key
+components to the DeployConfig:
+
+1. A replication controller template which describes the application to be deployed.
+2. The default replica count for the deployment.
+3. A deployment strategy which will be used to execute the deployment.
+4. A set of triggers which cause deployments to be created automatically.
+
+The Deploy Config is located at `.openshift/templates/deploy.yml`. We
+want to keep the deploy config as generic as possible. All the params
+for the `deploy.yml` are located at `.openshift/params/deploy-sbx`.
+
+=== Git Secrets
+
+The Git Secrets contains information that the Jenkins pipeline will you to checkout
+source code from git hub. The key component here is the
+https://linux.die.net/man/1/ssh[SSH Key Pair]. You will need to generate a
+SSH Key-Pair. You will add the private key to your gitsecrets file.
+The public key will be added to your GitLab account.
+
+=== Route Config
+
+The Route config has 3 components. The application name is self explanitory. The
+*_namespace_* is the name of your project in OpenShift. The hostname is the
+external address of your project.
+
+
+== Applier Components
+
+The applier uses https://www.ansible.com/overview/how-ansible-works[ansible] to
+set everything up for you in OpenShift. The .applier folder contains all the
+resources needed for the applier to automatically apply your OpenShift
+configuration. This includes provisioning infrastructure, deploying applications,
+and networking.
+
+=== Inventory and Hosts
+
+The *_inventory_* directory lists all of the systems that the applier will work
+with via Ansible.
+
+The hosts file lists all of the host groups and hosts that the applier will work
+with via Ansible. The hosts file will be generated dynamically using
+the *_seed-hosts_* file in the *_group_vars_* directory. The *_seed-hosts.yml_*.
+Uses templates and parameters from the *_.openshift_* directory to do this
+automatically.
+
+=== Group Vars
+
+The *_group_vars_* folder will contain a *_seed-hosts.yml_* file which
+will contain the Ansible tasks to run all the templates with params.
+
+=== Requirements
+
+The *_requirements.yml_* will install the ansible roles on your OpenShift infrastructure.
+How this works is outside the scope of this example, but if you are curious you
+can find out more https://github.com/redhat-cop/openshift-applier[here].
+
+
+== Build and run the example app locally
+
+This section is optional. The sample application uses the SpringBoot frame work to bootstrap a java
+application. This example can be used as the boiler-plate code for a Java, Spring,
+or SpringBoot application. This section will show you how to run the sample
+application on your local for machine. Click http://spring.io/guides[here] to dive deeper into SpringBoot
+
+*Prerequisites*
+
+To run the project locally you will need the following installed on your workstation:
+
+* https://deltasn.service-now.com/sp?id=sc_cat_item&sys_id=f6f7ab5cdb85930432e9f7441d961908[Java version 8 or higher]
+* https://gradle.org/install/[Gradle 4.4.1 or higher]
+* https://deltasn.service-now.com/sp?id=sc_cat_item&sys_id=d2a723d4db85930432e9f7441d961901[Git]
+* Optional
+** https://develop.zendesk.com/hc/en-us/articles/360001068567-Installing-and-using-cURL#curl_win[cUrl]
+
+*Build Test & Run Locally*
+
+1) Login to GitLab and create a fork of the project.
+----
+https://git.delta.com/openshift/application-examples/forks/new
+----
+
+2) Copy your fork to your workstation.
+----
+git clone git@git.delta.com:[your-gitlab-id]/application-examples.git
+----
+
+3) Navigate to spring-boot-rest-example.
+----
+cd application-examples/openjdk/spring-boot-rest-example
+----
+
+4) Build and run the application.
+----
+./gradlew build && java -jar build/libs/spring-boot-rest-example-0.1.0.jar`
+----
+
+5) Test the application.
+
+Visit localhost:8080 from a web browser
+
+or
+
+From the command line
+----
+curl localhost:8080
+
+The response should be: {"id":1,"content":"Hello, World!"}.
+----
+
+== Running the Playbooks locally
+This section is optional. You can follow these steps of you would like to run the
+Ansible Applier plabook locally. Click https://docs.ansible.com/ansible/2.5/user_guide/intro_getting_started.html[here]
+learn more about ansible.
+
+**Prerequisites**
+
+1) Login to GitLab and create a fork of the project.
+----
+https://git.delta.com/openshift/application-examples/forks/new
+----
+
+2) Copy your fork to your workstation.
+----
+git clone git@git.delta.com:[your-gitlab-id]/application-examples.git
+----
+
+3) Navigate to the SpringBoot Rest example.
+----
+cd application-examples/openjdk/spring-boot-rest-example
+----
+
+4) Intall Ansible Galaxy
+----
+ansible-galaxy install -r .applier/requirements.yml --roles-path=galaxy
+----
+
+5) Run the playbook
+----
+ansible-playbook -i .applier/inventory/ galaxy/openshift-applier/playbooks/openshift-cluster-seed.yml
+----

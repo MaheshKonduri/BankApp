@@ -1,0 +1,10 @@
+APPLICATION_NAME=spring-rest-example
+NAMESPACE=enterprise-pipeline-int
+SA_NAME=jenkins
+SA_NAMESPACE=enterprise-pipeline-build
+READINESS_RESPONSE=\"content\":\"Hello, World!\"
+READINESS_PATH=/
+MEMORY_LIMIT=512Mi
+CPU_LIMIT=50m
+MIN_REPLICAS=2
+MAX_REPLICAS=6

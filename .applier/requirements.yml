@@ -1,0 +1,4 @@
+---
+- name: openshift-applier
+  src: git+https://git.delta.com/openshift/openshift-applier.git
+  version: v3.7.2
