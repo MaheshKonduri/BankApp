@@ -20,7 +20,7 @@ id "org.springframework.boot" version "2.1.3.RELEASE"
 
 
 bootJar {
-    baseName = 'spring-boot-rest-example'
+    baseName = 'Bankapp'
     version =  '0.1.0'
 }
 
